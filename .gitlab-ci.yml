@@ -1,0 +1,35 @@
+stages:
+  - test
+
+build-and-test:
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  timeout: 15m
+
+  services:
+    - name: mysql:8.4
+      alias: db
+      variables:
+        HEALTHCHECK_TCP_PORT: "3306"
+
+  variables:
+    MYSQL_ROOT_PASSWORD: ci-root-password
+    MYSQL_DATABASE: studentdb
+    MYSQL_USER: studentuser
+    MYSQL_PASSWORD: ci-student-password
+
+    DB_PASSWORD: ci-student-password
+    SPRING_DATASOURCE_USERNAME: studentuser
+    SPRING_DATASOURCE_URL: "jdbc:mysql://db:3306/studentdb?allowPublicKeyRetrieval=true&sslMode=DISABLED"
+
+  script:
+    - mvn --batch-mode --no-transfer-progress clean verify
+
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - target/*.jar
+    reports:
+      junit:
+        - target/surefire-reports/TEST-*.xml
