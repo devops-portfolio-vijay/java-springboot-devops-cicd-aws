@@ -7,32 +7,27 @@ services:
       MYSQL_USER: studentuser
       MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
-    ports:
-      - "127.0.0.1:3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'mysqladmin ping -h 127.0.0.1 -u root -p"$${MYSQL_ROOT_PASSWORD}" --silent'
-      interval: 10s
+      test: [CMD-SHELL, 'mysqladmin ping -h 127.0.0.1 --silent']
+      interval: 5s
       timeout: 5s
-      retries: 12
+      retries: 24
       start_period: 30s
-
   app:
+    build: .
     image: student-app:local
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:8080"
     environment:
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
-      SPRING_DATASOURCE_URL: "jdbc:mysql://db:3306/studentdb?allowPublicKeyRetrieval=true&sslMode=DISABLED"
+      DB_USERNAME: studentuser
+      DB_URL: "jdbc:mysql://db:3306/studentdb?allowPublicKeyRetrieval=true&sslMode=DISABLED"
+      APP_VERSION: ${APP_VERSION:-local}
     depends_on:
       db:
         condition: service_healthy
-
 volumes:
   mysql-data:
-    external: true
-    name: student-mysql-data

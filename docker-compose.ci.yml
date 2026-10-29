@@ -1,0 +1,5 @@
+# CI-only database access for Maven integration tests.
+services:
+  db:
+    ports:
+      - "127.0.0.1:3306:3306"

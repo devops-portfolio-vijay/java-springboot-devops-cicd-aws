@@ -1,6 +1,7 @@
 package com.vijay.studentapp;
 
 import java.util.List;
+import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +32,7 @@ public class StudentController {
 
     @PostMapping("/students")
     @ResponseStatus(HttpStatus.CREATED)
-    public Student addStudent(@RequestBody Student student) {
+    public Student addStudent(@Valid @RequestBody Student student) {
         Student newStudent = new Student();
         newStudent.setName(student.getName());
         newStudent.setEmail(student.getEmail());
@@ -43,7 +44,7 @@ public class StudentController {
     @PutMapping("/students/{id}")
     public Student updateStudent(
             @PathVariable Long id,
-            @RequestBody Student student
+            @Valid @RequestBody Student student
     ) {
         Student existing = getStudent(id);
 

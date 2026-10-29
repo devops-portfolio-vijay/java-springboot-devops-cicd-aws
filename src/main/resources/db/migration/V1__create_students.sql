@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS students (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255),
+    email VARCHAR(255),
+    course VARCHAR(255)
+);

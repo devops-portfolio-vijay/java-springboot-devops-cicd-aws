@@ -11,8 +11,8 @@
 	<groupId>com.vijay</groupId>
 	<artifactId>studentapp</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
+	<name>Student Management DevOps Demo</name>
+	<description>Deployment-ready student management application for an AWS DevSecOps lab</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -51,7 +51,29 @@
     <artifactId>mysql-connector-j</artifactId>
     <scope>runtime</scope>
 </dependency>
-	</dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
 	<build>
 		<plugins>
