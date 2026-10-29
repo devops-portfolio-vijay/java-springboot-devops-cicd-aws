@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Student Management · AWS DevOps Lab</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#142638;background:#f0f4f8}*{box-sizing:border-box}body{margin:0}header{background:#142638;color:white;padding:32px max(24px,calc((100vw - 1100px)/2))}header p{color:#b5c8db;margin:8px 0}h1{margin:0;font-size:30px}main{max-width:1100px;margin:28px auto;padding:0 24px}.status{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0 0}.badge{font-size:13px;border:1px solid #53697f;border-radius:20px;padding:6px 12px}.grid{display:grid;grid-template-columns:300px 1fr;gap:24px}.card{background:white;border:1px solid #dce4ec;border-radius:14px;padding:24px;box-shadow:0 6px 20px #14263806}h2{font-size:19px;margin:0 0 20px}label{display:block;font-size:14px;margin:16px 0 6px}input{width:100%;border:1px solid #bccbd8;border-radius:7px;padding:11px;font:inherit}button{border:0;border-radius:7px;padding:10px 14px;background:#087e8b;color:white;font:inherit;cursor:pointer}button:disabled{opacity:.5;cursor:wait}button.secondary{background:#e8eef4;color:#223d55}button.danger{background:#fff0ef;color:#ad3028}form button{margin-top:18px}table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}th{color:#5c7084;font-weight:500}th,td{padding:14px 8px;border-bottom:1px solid #e8edf2;word-break:break-word}td button{font-size:12px;padding:7px;margin:2px}.table-wrap{overflow:auto}#message{min-height:24px;margin:20px 0;color:#285f67}#message.error{color:#b32a25}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px}.toolbar h2{margin:0}.empty{color:#61758a;text-align:center;padding:32px}footer{color:#61758a;font-size:13px;margin-top:24px}@media(max-width:800px){.grid{grid-template-columns:1fr}header{padding:24px}h1{font-size:25px}}
+</style>
+</head>
+<body>
+<header><p>AWS DEVOPS LAB / APPLICATION</p><h1>Student Management</h1><p>A simple application for testing builds, deployments, monitoring, and recovery.</p><div class="status"><span class="badge" id="health">Health: checking…</span><span class="badge" id="version">Release: checking…</span></div></header>
+<main><div class="grid"><section class="card"><h2 id="form-title">Add student</h2><form id="student-form"><label for="name">Full name</label><input id="name" required maxlength="255" autocomplete="name"><label for="email">Email address</label><input id="email" type="email" required maxlength="255" autocomplete="email"><label for="course">Course</label><input id="course" required maxlength="255"><button id="save" type="submit">Save student</button> <button class="secondary" id="cancel" type="button" hidden>Cancel</button></form></section><section class="card"><div class="toolbar"><h2>Students <span id="count"></span></h2><button class="secondary" id="refresh">Refresh</button></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Course</th><th>Actions</th></tr></thead><tbody id="students"></tbody></table></div><div id="empty" class="empty" hidden>No students yet. Add your first student.</div></section></div><p id="message" role="status" aria-live="polite"></p><footer>Portfolio demo · Use sample data. Authentication will be needed before storing real student records.</footer></main>
+<script>
+const $ = id => document.getElementById(id);
+let editing = null;
+function message(text, error=false) { $('message').textContent=text; $('message').className=error?'error':''; }
+async function api(path, options={}) {
+ const response=await fetch(path,options);
+ if(!response.ok){let detail;try{const p=await response.json();detail=p.errors?Object.entries(p.errors).map(([k,v])=>`${k}: ${v}`).join('; '):p.detail;}catch{}throw new Error(detail||`Request failed (${response.status})`);}
+ return response.status===204?null:response.json();
+}
+function reset(){editing=null;$('student-form').reset();$('form-title').textContent='Add student';$('cancel').hidden=true;}
+async function load(){
+ try{const students=await api('/students');$('students').replaceChildren();$('count').textContent=`(${students.length})`;$('empty').hidden=students.length!==0;
+ for(const student of students){const row=document.createElement('tr');for(const key of ['name','email','course']){const cell=document.createElement('td');cell.textContent=student[key];row.append(cell);}const cell=document.createElement('td');const edit=document.createElement('button');edit.textContent='Edit';edit.className='secondary';edit.onclick=()=>{editing=student.id;for(const key of ['name','email','course'])$(key).value=student[key];$('form-title').textContent='Edit student';$('cancel').hidden=false;$('name').focus();};const remove=document.createElement('button');remove.textContent='Delete';remove.className='danger';remove.onclick=async()=>{if(!confirm(`Delete ${student.name}?`))return;remove.disabled=true;try{await api(`/students/${student.id}`,{method:'DELETE'});if(editing===student.id)reset();message('Student deleted.');await load();}catch(e){message(e.message,true);}finally{remove.disabled=false;}};cell.append(edit,remove);row.append(cell);$('students').append(row);}}
+ catch(e){message(e.message,true);}
+}
+async function health(){try{const h=await api('/actuator/health');$('health').textContent=`Health: ${h.status}`;}catch{$('health').textContent='Health: unavailable';}try{const info=await api('/actuator/info');$('version').textContent=`Release: ${info.app.version}`;}catch{$('version').textContent='Release: unavailable';}}
+$('student-form').onsubmit=async event=>{event.preventDefault();$('save').disabled=true;try{const body=Object.fromEntries(['name','email','course'].map(k=>[k,$(k).value.trim()]));await api(editing===null?'/students':`/students/${editing}`,{method:editing===null?'POST':'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});reset();message('Student saved.');await load();}catch(e){message(e.message,true);}finally{$('save').disabled=false;}};
+$('cancel').onclick=reset;$('refresh').onclick=()=>{load();health();};load();health();setInterval(health,30000);
+</script>
+</body></html>

@@ -53,3 +53,7 @@ target/
 # Private keys
 *.pem
 *.key
+
+# Python smoke-test cache
+__pycache__/
+*.pyc
