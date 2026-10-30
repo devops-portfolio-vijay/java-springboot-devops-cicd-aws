@@ -1,0 +1,120 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: "us-east-1"
+    ECR_REPOSITORY: "studentapp-devsecops"
+    DB_PASSWORD: "ci-student-password"
+    MYSQL_ROOT_PASSWORD: "ci-root-password"
+    TEST_DB_URL: "jdbc:mysql://127.0.0.1:3306/studentdb?allowPublicKeyRetrieval=true&sslMode=DISABLED"
+    TEST_DB_USERNAME: "studentuser"
+    TEST_DB_PASSWORD: "ci-student-password"
+    TEST_DB_DRIVER: "com.mysql.cj.jdbc.Driver"
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+    commands:
+      - java -version
+      - docker --version
+      - docker compose version
+      - python3 --version
+
+  pre_build:
+    commands:
+      - echo "Preparing build variables"
+      - |
+        set -eu
+
+        ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+        REPOSITORY_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPOSITORY}"
+        SOURCE_REVISION="${CODEBUILD_RESOLVED_SOURCE_VERSION:-unknown}"
+        APP_VERSION="$(printf '%s' "$SOURCE_REVISION" | cut -c 1-12)"
+        IMAGE_TAG="${APP_VERSION}-${CODEBUILD_BUILD_NUMBER}"
+
+        {
+          printf 'export REPOSITORY_URI=%s\n' "$REPOSITORY_URI"
+          printf 'export IMAGE_TAG=%s\n' "$IMAGE_TAG"
+          printf 'export APP_VERSION=%s\n' "$APP_VERSION"
+        } > /tmp/build-vars
+
+        printf 'Repository: %s\nImage tag: %s\n' "$REPOSITORY_URI" "$IMAGE_TAG"
+      - echo "Validating Docker Compose configuration"
+      - docker compose -f docker-compose.yml -f docker-compose.ci.yml config --quiet
+      - echo "Authenticating with Amazon ECR"
+      - |
+        . /tmp/build-vars
+        aws ecr get-login-password --region "$AWS_DEFAULT_REGION" |
+          docker login --username AWS --password-stdin "$REPOSITORY_URI"
+      - echo "Starting MySQL for integration tests"
+      - docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait db
+
+  build:
+    commands:
+      - echo "Running Maven unit and H2 verification tests"
+      - chmod +x mvnw
+      - ./mvnw --batch-mode --no-transfer-progress clean verify
+      - echo "Running integration tests against MySQL"
+      - ./mvnw --batch-mode --no-transfer-progress test
+      - echo "Building and starting the application container"
+      - |
+        . /tmp/build-vars
+        export APP_VERSION
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build app
+      - echo "Running application smoke tests"
+      - python3 scripts/smoke-test.py
+      - echo "Checking persistence after application restart"
+      - |
+        STUDENT_ID="$(
+          curl --fail --silent --show-error \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"Persistence Test","email":"persistence@example.com","course":"DevOps"}' \
+            http://localhost:8080/students |
+          python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])'
+        )"
+
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml restart app
+
+        python3 scripts/smoke-test.py
+
+        curl --fail --silent --show-error \
+          "http://localhost:8080/students/$STUDENT_ID" |
+          python3 -c 'import json,sys; assert json.load(sys.stdin)["name"] == "Persistence Test"'
+
+        curl --fail --silent --show-error \
+          -X DELETE "http://localhost:8080/students/$STUDENT_ID"
+      - echo "All application tests passed"
+      - echo "Tagging the tested Docker image for ECR"
+      - |
+        . /tmp/build-vars
+        docker tag student-app:local "${REPOSITORY_URI}:${IMAGE_TAG}"
+      - echo "Pushing the tested image to ECR"
+      - |
+        . /tmp/build-vars
+        docker push "${REPOSITORY_URI}:${IMAGE_TAG}"
+
+    finally:
+      - docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color || true
+      - docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v || true
+
+  post_build:
+    commands:
+      - echo "Generating ECS image definitions"
+      - |
+        . /tmp/build-vars
+        printf '[{"name":"studentapp","imageUri":"%s"}]' \
+          "${REPOSITORY_URI}:${IMAGE_TAG}" > imagedefinitions.json
+        printf 'Published image: %s\n' "${REPOSITORY_URI}:${IMAGE_TAG}"
+
+reports:
+  junit-reports:
+    files:
+      - "TEST-*.xml"
+    base-directory: "target/surefire-reports"
+    file-format: JUNITXML
+
+artifacts:
+  files:
+    - imagedefinitions.json
+  discard-paths: yes
