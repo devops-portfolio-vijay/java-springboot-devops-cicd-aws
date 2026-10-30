@@ -1,103 +1,181 @@
-# Student Management · AWS DevSecOps Lab
+<div align="center">
 
-A ready-made Java 21 / Spring Boot 4.1.1 application so the project can focus on AWS infrastructure, CI/CD, deployment strategies, monitoring, and rollback.
+# ☁️ Student Management System
 
-## Run locally with Docker
+### 🚀 AWS Cloud & DevOps | CI/CD Automation
 
-Install Docker Engine and the Docker Compose plugin. Java and Maven are **not** required on the host for this option.
+**Code → Build → Test → Containerize → Deploy**
 
-```bash
-cp .env.example .env
+A containerized Java Spring Boot application deployed on AWS using automated CI/CD, Docker, Terraform, and Amazon RDS.
+
+![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-Backend-6DB33F?logo=springboot&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Containerization-2496ED?logo=docker&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-Cloud-FF9900?logo=amazonaws&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform&logoColor=white)
+![CI/CD](https://img.shields.io/badge/CI%2FCD-Automation-success)
+
+</div>
+
+---
+
+## 🚀 Project Overview
+
+This project demonstrates how to automate the build, testing, containerization, and deployment of a Spring Boot application using AWS Cloud and DevOps tools.
+
+The application runs on **Amazon ECS with AWS Fargate**, stores student records in **Amazon RDS for MySQL**, and uses **AWS CodePipeline and CodeBuild** for CI/CD.
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart TD
+    A["👨‍💻 Developer"] --> B["GitHub Repository"]
+    B --> C["AWS CodePipeline"]
+    C --> D["AWS CodeBuild"]
+    D --> E["🧪 Maven Build & Tests"]
+    E --> F["🐳 Build Docker Image"]
+    F --> G["Amazon ECR"]
+    G --> H["Amazon ECS Fargate"]
+    H --> I["Spring Boot Application"]
+    I --> J[("Amazon RDS MySQL")]
+
+    K["Terraform"] -.-> L["AWS Infrastructure"]
+    L -.-> H
+    L -.-> J
+
+    style A fill:#24292e,color:#fff,stroke:#6e7681
+    style B fill:#24292e,color:#fff,stroke:#6e7681
+    style C fill:#6933b7,color:#fff,stroke:#bda1ff
+    style D fill:#b45309,color:#fff,stroke:#fcd34d
+    style G fill:#b45309,color:#fff,stroke:#fcd34d
+    style H fill:#b45309,color:#fff,stroke:#fcd34d
+    style I fill:#166534,color:#fff,stroke:#86efac
+    style J fill:#166534,color:#fff,stroke:#86efac
+    style K fill:#374151,color:#fff,stroke:#9ca3af
 ```
 
-Edit `.env` and replace both password placeholders with different local passwords. Then:
+## ⚙️ CI/CD Workflow
+
+| Stage | Description |
+|---|---|
+| 📥 Source | Application code is maintained in GitHub |
+| 🔨 Build | AWS CodeBuild builds the application |
+| 🧪 Test | Configured automated tests are executed |
+| 🐳 Containerize | Docker builds the application image |
+| 📦 Publish | The image is pushed to Amazon ECR |
+| 🚀 Deploy | Amazon ECS runs the containerized application |
+| 🗄️ Persist | Student data is stored in Amazon RDS |
+
+## 🛠️ Technology Stack
+
+| Category | Technologies |
+|---|---|
+| Backend | Java 21, Spring Boot |
+| Build Tool | Apache Maven |
+| Database | MySQL 8.4, Amazon RDS |
+| Database Migrations | Flyway |
+| Containerization | Docker |
+| Container Registry | Amazon ECR |
+| Container Platform | Amazon ECS, AWS Fargate |
+| CI/CD | AWS CodePipeline, AWS CodeBuild |
+| Infrastructure as Code | Terraform |
+| Version Control | Git, GitHub |
+| Security | AWS IAM, Secrets Manager, Security Groups |
+
+## ✨ Key Features
+
+- 🔄 Automated CI/CD workflow using AWS services.
+- 🐳 Docker-based application packaging and deployment.
+- ☁️ Infrastructure provisioning using Terraform.
+- 🗄️ Persistent student data storage using MySQL.
+- 🧪 Automated testing and database integration testing.
+- 🔐 IAM-based access control and managed database credentials.
+- 🧰 Practical cloud deployment and troubleshooting experience.
+
+## 💻 Run Locally
+
+### Prerequisites
+
+- Java 21
+- Maven
+- Docker and Docker Compose
+- Git
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/vijay-1806/java-springboot-devops-cicd-aws.git
+cd java-springboot-devops-cicd-aws
+```
+
+### 2. Configure Environment Variables
+
+Create a `.env` file containing the database environment variables required by your Docker Compose configuration.
+
+Use strong passwords and never commit credentials or the `.env` file to GitHub.
+
+### 3. Start the Application
 
 ```bash
 docker compose up --build -d
 ```
 
-Open http://localhost:8080. The page supports adding, viewing, editing, and deleting students, and displays health and release information. Startup may take a minute while MySQL initializes.
+### 4. Check Running Containers
 
 ```bash
-docker compose logs -f app
-curl --fail http://localhost:8080/actuator/health
-python3 scripts/smoke-test.py
+docker compose ps
 ```
 
-Expected health response: `{"status":"UP"}`. The smoke test creates synthetic data, exercises CRUD and validation, and deletes its record.
+### 5. View Application Logs
 
-Stop containers while keeping data:
+```bash
+docker compose logs -f
+```
+
+### 6. Stop the Application
 
 ```bash
 docker compose down
 ```
 
-Compose creates a persistent, project-scoped MySQL volume automatically. `docker compose down -v` deletes that volume and all its records; use only when intentionally resetting disposable demo data. The database is not exposed to the host in the normal configuration.
+**Note:** The database uses a named Docker volume for persistence. Avoid adding `-v` unless you intentionally want to remove the database volume.
 
-## Tests without Docker
+## 🔐 Security Practices
 
-Install JDK 21. The Maven wrapper downloads Maven automatically.
+- IAM roles and permissions for AWS services.
+- Security groups to restrict network traffic.
+- Private database networking.
+- AWS Secrets Manager for database credentials.
+- Environment-based application configuration.
+- Non-root execution in the Docker container.
 
-```bash
-./mvnw clean verify
-```
+## 🔮 Future Enhancements
 
-The tests use H2 in MySQL compatibility mode, exercising the application, migration, validation, and health endpoints. CI also runs the same suite against real MySQL 8.4 and smoke-tests the built container. H2 alone is not proof of MySQL compatibility.
+- 📊 Amazon CloudWatch monitoring, dashboards, and alarms.
+- 🔵🟢 Blue/green deployments using AWS CodeDeploy.
+- ↩️ Automated deployment rollback.
+- 🛡️ Docker image vulnerability scanning.
+- 🔒 Application Load Balancer with HTTPS.
+- 📣 Deployment failure notifications.
 
-On Windows use `mvnw.cmd clean verify`.
+## 📌 Project Status
 
-## API
+**Current focus:** Validating the complete AWS CI/CD pipeline and documenting the deployment.
 
-| Method | Path | Result |
-| --- | --- | --- |
-| GET | `/` | Demo web page |
-| GET | `/students` | Student list |
-| GET | `/students/{id}` | Student, or 404 |
-| POST | `/students` | Create student, 201 |
-| PUT | `/students/{id}` | Update student, or 404 |
-| DELETE | `/students/{id}` | Delete student, 204, or 404 |
-| GET | `/actuator/health` | Application and database health |
-| GET | `/actuator/health/liveness` | Process liveness |
-| GET | `/actuator/health/readiness` | Readiness including database |
-| GET | `/actuator/info` | Application release identifier |
+Monitoring, blue/green deployments, and advanced security automation are planned improvements.
 
-Example:
+## 👨‍💻 Author
 
-```bash
-curl --fail -H 'Content-Type: application/json' \
-  -d '{"name":"Vijay","email":"vijay@example.com","course":"AWS DevOps"}' \
-  http://localhost:8080/students
-```
+**Vijayaragavan G.**
 
-All three fields are required and limited to 255 characters; email must have a valid format. Invalid input returns 400 with field errors. No unique-email requirement is imposed.
+GitHub: [@vijay-1806](https://github.com/vijay-1806)
 
-## Configuration
+---
 
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `DB_URL` | JDBC connection string | `jdbc:mysql://localhost:3306/studentdb` |
-| `DB_USERNAME` | Application database user | `studentuser` |
-| `DB_PASSWORD` | Database password | Required |
-| `PORT` | HTTP port | `8080` |
-| `APP_VERSION` | Release shown on page and info endpoint | `local` |
-| `MYSQL_ROOT_PASSWORD` | MySQL initialization password for Compose | Required by Compose |
+<div align="center">
 
-`SPRING_DATASOURCE_*` can also override Spring's datasource settings. Keep credentials outside Git; later AWS stages should inject them through Secrets Manager or an equivalent service. Compose disables database TLS only for its local private container network. For AWS, configure a verified TLS database connection.
+### ☁️ Learn. Build. Automate. Deploy.
 
-The container runs as UID 10001, builds in a separate Maven stage, and supports graceful shutdown. Set `APP_VERSION` to a commit SHA or image tag to distinguish deployments. Build tests run separately in CI before the Docker image is built.
+*Hands-on learning project focused on AWS Cloud and DevOps engineering.*
 
-## Database migrations and existing data
-
-Flyway owns schema changes in `src/main/resources/db/migration`. Hibernate validates the resulting schema rather than changing it automatically. New databases work without manual SQL.
-
-The normal Compose configuration uses a **new project-scoped volume**. It does not attach or delete the older external `student-mysql-data` volume, so existing local records will not appear automatically.
-
-To reuse an existing database, take a backup first and verify its `students` table matches V1 (`id BIGINT` identity primary key; `name`, `email`, and `course` as `VARCHAR(255)`). Only for that initial adoption, start with `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true` and `SPRING_FLYWAY_BASELINE_VERSION=0`. V1 uses `CREATE TABLE IF NOT EXISTS`; it will not repair incompatible existing tables. Remove the adoption settings after success. Do not blindly baseline an unknown database. Application rollback does not reverse database migrations.
-
-## CI and next AWS work
-
-GitHub Actions builds and tests with Java 21, verifies against MySQL 8.4, builds the image, runs HTTP smoke tests, and checks data survives an application restart. Test reports are uploaded as an artifact. Tests use synthetic student data.
-
-The AWS pipeline, ECR publishing, ECS deployment, Terraform, security scanning, CloudWatch alarms, canary traffic shifting, and automatic rollback remain the next project phases. This commit prepares the application foundation; it does not create AWS resources.
-
-This is a portfolio lab without authentication. Use synthetic records and restricted access. Add authentication and authorization before using real student information or offering public write access.
+</div>
