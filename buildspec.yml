@@ -1,4 +1,3 @@
-```yaml
 version: 0.2
 
 env:
@@ -119,4 +118,3 @@ artifacts:
   files:
     - imagedefinitions.json
   discard-paths: yes
-```
